@@ -1,0 +1,20 @@
+Amazon recommendation system
+
+Abstract:
+Customer reviews on products on Amazon website play a critical role in customer's decision of buying a product.
+Customer's choice of products, likes dislikes are affected by what other customers feel about those product.
+This project aims to provide a more seamless and personalized experience to the customers by combining sentiment
+analysis with  recommendation system techniques like collaborative filtering, product-to-product relation filtering.
+It also aims at identifying trends in the market area-wise, which products/categories are in huge demand around the
+year and the seasonality within the sale around the year where certain festivals/occasions affect the market in a
+different way where products that are not related to each other are also bought together, for instance;
+Christmas sale consists of products like ornaments, Christmas Trees, gift baskets etc. which are not related to
+each other but should be recommended according to the season.
+
+Following are the technologies and languages we will use in this project.
+
+Languages: Java, Python
+Technologies: Apache Kafka (or Spark/Storm), Zookeeper, different libraries for sentiment analysis.
+
+Dataset source:
+http://jmcauley.ucsd.edu/data/amazon/
