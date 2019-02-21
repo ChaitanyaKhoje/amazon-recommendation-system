@@ -11,6 +11,14 @@ different way where products that are not related to each other are also bought 
 Christmas sale consists of products like ornaments, Christmas Trees, gift baskets etc. which are not related to
 each other but should be recommended according to the season.
 
+Possible solutions:
+A sentiment analysis of users' reviews into positive, neutral, negative will help in understanding what users feel
+about the product they bought. Product-to-Product relationships will tell us how products are related to each other
+which will further help in finding the correct products to recommend and a customer-to-customer
+collaborative filtering of products being bought will tell us how a user might be interested in the products that
+another user has already bought as they have common interests.
+
+
 Following are the technologies and languages we will use in this project.
 
 Languages: Java, Python
