@@ -19,7 +19,7 @@ collaborative filtering of products being bought will tell us how a user might b
 another user has already bought as they have common interests.
 
 
-Following are the technologies and languages we will use in this project.
+Following are the technologies and languages used in this project.
 
 Languages: Java, Python
 Technologies: Apache Kafka (or Spark/Storm), Zookeeper, different libraries for sentiment analysis.
