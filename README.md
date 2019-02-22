@@ -1,7 +1,7 @@
 # Amazon recommendation system
----
+
 ## Project Abstract
----
+
 Customer reviews on products on Amazon website play a critical role in customer's decision of buying a product.
 Customer's choice of products, likes dislikes are affected by what other customers feel about those product.
 This project aims to provide a more seamless and personalized experience to the customers by combining sentiment
@@ -13,7 +13,7 @@ Christmas sale consists of products like ornaments, Christmas Trees, gift basket
 each other but should be recommended according to the season.
 
 **Possible solutions:**
----
+
 A sentiment analysis of users' reviews into positive, neutral, negative will help in understanding what users feel
 about the product they bought. Product-to-Product relationships will tell us how products are related to each other
 which will further help in finding the correct products to recommend and a customer-to-customer
