@@ -26,6 +26,11 @@ Following are the technologies and languages used in this project.
 Languages: Java, Python
 Technologies: Apache Kafka (or Spark/Storm), Zookeeper, different libraries for sentiment analysis.
 
+## Design
+
+![alt text](https://github.com/ChaitanyaKhoje/amazon-recommendation-system/blob/master/RecommenderSystem-Page-2.png)
+
+
 Dataset source:
 ---
 http://jmcauley.ucsd.edu/data/amazon/
