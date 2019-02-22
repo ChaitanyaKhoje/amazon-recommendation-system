@@ -1,5 +1,6 @@
 package driver;
 
+import recommender.Handler;
 import util.FileProcessor;
 
 public class Driver {
@@ -7,7 +8,8 @@ public class Driver {
     public static void main(String[] args) {
 
         if (validate(args)) {
-            readData(args[0]);
+            initialize(args[0]);
+
         }
     }
 
@@ -19,10 +21,19 @@ public class Driver {
         return false;
     }
 
-    public static void readData(String filePath) {
+    /**
+     * Initializes the scanner with the given file, passes the FileProcessor to a handler class who populates the data
+     * in-memory.
+     * @param filePath
+     */
+    public static void initialize(String filePath) {
 
         FileProcessor fileProcessor = new FileProcessor(filePath);
-        fileProcessor.storeData();
+        Handler handler = new Handler(fileProcessor);
+        handler.populateInMemory();
+    }
+
+    public static void startRecommender() {
 
     }
 }

@@ -11,7 +11,6 @@ public class FileProcessor {
 
     private Scanner scanner = null;
     private String fileLine = " ";
-    public FileProcessor() { }
 
     /**
      * Constructor for FileProcessor; takes in the file path and initializes the scanner with it.
@@ -85,14 +84,6 @@ public class FileProcessor {
     public boolean hasNextLine() {
 
         return this.scanner.hasNextLine();
-    }
-
-    public void storeData() {
-
-        if (hasNextLine()) {
-            String line = getNextLine();
-            System.out.println(line);
-        }
     }
 
     @Override

@@ -1,15 +1,17 @@
 package recommender;
 
+import java.util.Arrays;
+
 public class Product {
 
     private String reviewerID = "";
-    private long productID = 0;
+    private String productID = "";
     private String reviewerName = "";
     private int[] helpfulness;
     private String reviewText = "";
     private int overallRating;
     private String summary = "";
-    private long reviewTime;
+    private String reviewTime;
 
     public Product() { }
 
@@ -21,11 +23,11 @@ public class Product {
         this.reviewerID = reviewerID;
     }
 
-    public long getProductID() {
+    public String getProductID() {
         return productID;
     }
 
-    public void setProductID(long productID) {
+    public void setProductID(String productID) {
         this.productID = productID;
     }
 
@@ -69,12 +71,26 @@ public class Product {
         this.summary = summary;
     }
 
-    public long getReviewTime() {
+    public String getReviewTime() {
         return reviewTime;
     }
 
-    public void setReviewTime(long reviewTime) {
+    public void setReviewTime(String reviewTime) {
         this.reviewTime = reviewTime;
+    }
+
+    @Override
+    public String toString() {
+        return "Product{" +
+                "reviewerID='" + reviewerID + '\'' +
+                ", productID=" + productID +
+                ", reviewerName='" + reviewerName + '\'' +
+                ", helpfulness=" + Arrays.toString(helpfulness) +
+                ", reviewText='" + reviewText + '\'' +
+                ", overallRating=" + overallRating +
+                ", summary='" + summary + '\'' +
+                ", reviewTime='" + reviewTime + '\'' +
+                '}';
     }
 }
 
