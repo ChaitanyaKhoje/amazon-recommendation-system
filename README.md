@@ -28,7 +28,7 @@ Technologies: Apache Kafka (or Spark/Storm), Zookeeper, different libraries for 
 
 ## Design
 
-![alt text](https://github.com/ChaitanyaKhoje/amazon-recommendation-system/blob/master/RecommenderSystem-Page-2.png)
+![alt text](https://github.com/ChaitanyaKhoje/amazon-recommendation-system/blob/master/img/RecommenderSystem-Page-2.png)
 
 
 Dataset source:
