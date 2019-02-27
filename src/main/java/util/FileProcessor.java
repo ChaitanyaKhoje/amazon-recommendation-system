@@ -25,11 +25,12 @@ public class FileProcessor {
         try {
             if (file != null) this.scanner = new Scanner(file);
         } catch (FileNotFoundException e) {
-            System.out.println("File not found!");
-        } catch (NullPointerException npe){
-            System.out.println("Seems like a file was missing while passing the arguments to the program.");
+            System.err.println("File not found!");
+            System.exit(-1);
+        } catch (NullPointerException npe) {
+            System.err.println("Seems like a file was missing while passing the arguments to the program.");
         } finally {
-            System.out.println("");
+            System.out.println();
         }
     }
 

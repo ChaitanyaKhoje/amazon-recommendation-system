@@ -1,7 +1,6 @@
 package recommender;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.json.*;
 import util.FileProcessor;
 
 import java.util.ArrayList;
