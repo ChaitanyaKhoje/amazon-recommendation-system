@@ -8,6 +8,10 @@ all_objects = []
 
 
 def read_data(file):
+    # Clearing any previous data from the previous read file
+    all_objects.clear()
+
+    # Looping over file lines
     for line in open(file):
         data = json.loads(line)
         all_objects.append(data)

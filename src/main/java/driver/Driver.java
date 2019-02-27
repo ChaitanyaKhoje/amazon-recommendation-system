@@ -3,7 +3,6 @@ package driver;
 import recommender.Handler;
 import recommender.Recommender;
 import recommender.SentimentAnalyzer;
-import util.FileProcessor;
 
 public class Driver {
 
@@ -14,9 +13,9 @@ public class Driver {
     public static void main(String[] args) {
 
         if (validate(args)) {
-            startSentimentAnalyzer();   // Process holds until complete, need to change later.
-            populateInMemory(args[0]);
-            startRecommender();
+            startSentimentAnalyzer();   // Process holds until operation complete, need to change later.
+            Handler handler = initialize(args[0]);
+            startRecommender(handler);
         }
     }
 
@@ -34,25 +33,15 @@ public class Driver {
     }
 
     /**
-     * Initializes the Scanner with the given file, passes the FileProcessor to a handler class who populates
-     * the data in-memory.
-     * @param filePath
-     */
-    public static void populateInMemory(String filePath) {
-
-        Handler handler = initialize(filePath);
-        handler.populateInMemory();
-    }
-
-    /**
      * Initializes FileProcessor and the Handler class.
      * @param filePath
      * @return
      */
     public static Handler initialize(String filePath) {
 
-        FileProcessor fileProcessor = new FileProcessor(filePath);
-        return new Handler(fileProcessor);
+        Handler handler = new Handler();
+        handler.processData(filePath);
+        return handler;
     }
 
     /**
@@ -66,10 +55,11 @@ public class Driver {
 
     /**
      * Starts the recommendation engine
+     * The Handler instance holds all the data in-memory that we need for the recommendation system.
      */
-    public static void startRecommender() {
+    public static void startRecommender(Handler handler) {
 
-        Recommender recommender = new Recommender();
+        Recommender recommender = new Recommender(handler);
         recommender.start();
     }
 }
