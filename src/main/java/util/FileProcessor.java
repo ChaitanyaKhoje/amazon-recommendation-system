@@ -15,7 +15,7 @@ public class FileProcessor {
     /**
      * Constructor for FileProcessor; takes in the file path and initializes the scanner with it.
      *
-     * @param filePathIn input.txt/delete.txt path is passed for Scanner.
+     * @param filePathIn input.json/delete.txt path is passed for Scanner.
      */
     public FileProcessor(String filePathIn) {
         File file = null;
@@ -78,7 +78,7 @@ public class FileProcessor {
     }
 
     /**
-     * Used while iterating over input.txt and delete.txt
+     * Used while iterating over input.json and delete.txt
      *
      * @return returns true if there is another line in the input.
      */

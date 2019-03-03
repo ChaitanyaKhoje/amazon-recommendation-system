@@ -5,8 +5,10 @@ import org.json.JSONObject;
 import util.FileProcessor;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +16,9 @@ import java.util.Set;
 public class Handler {
 
     private FileProcessor fileProcessor = null;
+
+    // Holds the input data read from input.txt
+    private Map<String, List<String>> input = new HashMap<String, List<String>>();
     // All products
     private Set<Product> products = new HashSet<Product>();
     // All users by their review IDs
@@ -24,7 +29,7 @@ public class Handler {
 
     // To fetch list of products for a particular user
     // Map --> <User, Products>
-    private Map<String, Set<Product>> userToProductMap = new HashMap<String, Set<Product>>();
+    private Map<String, Set<String>> userToProductMap = new HashMap<String, Set<String>>();
 
     // To fetch list of users (reviewerIDs) for a particular product
     // Map --> <Product, Users>
@@ -36,7 +41,21 @@ public class Handler {
      * Iterates over all the files residing in a given directory
      * @param dirPath
      */
-    public void processData(String dirPath) {
+    public void processData(String dirPath, String inputFPath) {
+
+        if (inputFPath != null && !inputFPath.isEmpty()) {
+            File inputFile = new File(inputFPath);
+            if (inputFile.getName().endsWith(".json")) {
+                FileProcessor fp = new FileProcessor(inputFile.getPath());
+                while (fp.hasNextLine()) {
+                    String line = fp.getNextLine();
+                    parseInputData(line);
+                }
+            } else {
+                System.err.println("The input file should be a .json!\nPlease supply appropriate file and rerun.");
+                System.exit(-1);
+            }
+        }
 
         File dir = new File(dirPath);
         if (dir.isDirectory()) {
@@ -139,10 +158,36 @@ public class Handler {
 
             if (jsonObject.has("asin")) productsMap.put(jsonObject.getString("asin"), product);
 
+            // DEBUG
             if (jsonObject.getString("reviewerID").equals("A1L5P841VIO02V")) {
                 System.out.println();
             }
             mapDetails(jsonObject, product);     // Store all the required mapping for recommendation
+        }
+    }
+
+    /**
+     * Parses the input.json file for a reviewer and the products he bought.
+     * @param line
+     */
+    public void parseInputData(String line) {
+
+        if (line != null && !line.isEmpty()) {
+            String rID = "";
+            List<String> boughtProducts = new ArrayList<String>();
+            JSONObject jsonObject = new JSONObject(line);
+            if (!jsonObject.isEmpty()) {
+                if (jsonObject.has("reviewerID")) {
+                    rID = jsonObject.getString("reviewerID");
+                }
+                if (jsonObject.has("products_bought")) {
+                    JSONArray productsJObs = jsonObject.getJSONArray("products_bought");
+                    for (int i = 0; i < productsJObs.length(); i++) {
+                        boughtProducts.add(productsJObs.optString(i));
+                    }
+                }
+                input.put(rID, boughtProducts);
+            }
         }
     }
 
@@ -154,13 +199,13 @@ public class Handler {
     public void mapDetails(JSONObject jsonObject, Product product) {
 
         // User to products mapping
-        Set<Product> userProducts = userToProductMap.get(jsonObject.getString("reviewerID"));
-        if (userProducts == null) userProducts = new HashSet<Product>();
+        Set<String> userProducts = userToProductMap.get(jsonObject.getString("reviewerID"));
+        if (userProducts == null) userProducts = new HashSet<String>();
         if (!userProducts.isEmpty()) {
             //TODO If there are products assigned to this user, check if current product already exists
 
         }
-        userProducts.add(product);
+        userProducts.add(jsonObject.getString("asin"));
 
         if (jsonObject.has("reviewerID")) {
             // Map reviewer ID to all the products he reviewed.
@@ -198,11 +243,28 @@ public class Handler {
         return productsMap;
     }
 
-    public Map<String, Set<Product>> getUserToProductMap() {
+    public Map<String, Set<String>> getUserToProductMap() {
         return userToProductMap;
     }
 
     public Map<String, Set<String>> getProductToUserMap() {
         return productToUserMap;
+    }
+
+    public Map<String, List<String>> getInput() {
+        return input;
+    }
+
+    @Override
+    public String toString() {
+        return "Handler{" +
+                "fileProcessor=" + fileProcessor +
+                ", input=" + input +
+                ", products=" + products +
+                ", users=" + users +
+                ", productsMap=" + productsMap +
+                ", userToProductMap=" + userToProductMap +
+                ", productToUserMap=" + productToUserMap +
+                '}';
     }
 }

@@ -14,7 +14,7 @@ public class Driver {
 
         if (validate(args)) {
             startSentimentAnalyzer();   // Process holds until operation complete, need to change later.
-            Handler handler = initialize(args[0]);
+            Handler handler = initialize(args[0], args[1]);
             startRecommender(handler);
         }
     }
@@ -26,21 +26,23 @@ public class Driver {
      */
     public static boolean validate(String[] args) {
 
-        if (args.length == 1) {
+        if (args.length == 2) {
             return true;
+        } else {
+            System.err.println("Invalid number of arguments passed!\nPlease pass in the data directory-path & the input file path");
+            return false;
         }
-        return false;
     }
 
     /**
      * Initializes FileProcessor and the Handler class.
-     * @param filePath
+     * @param dirPath
      * @return
      */
-    public static Handler initialize(String filePath) {
+    public static Handler initialize(String dirPath, String inputFPath) {
 
         Handler handler = new Handler();
-        handler.processData(filePath);
+        handler.processData(dirPath, inputFPath);
         return handler;
     }
 
