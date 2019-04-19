@@ -2,7 +2,9 @@ package recommender;
 
 import util.Constants;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class SentimentAnalyzer{
 
@@ -16,7 +18,7 @@ public class SentimentAnalyzer{
      *  The python program automatically iterates over JSON files in that directory and writes the sentiments
      *  back to those files.
      */
-    public void performSentimentAnalysis() {
+    public void performSentimentAnalysisOld() {
 
         ProcessBuilder builder;
         Process process = null;
@@ -42,4 +44,25 @@ public class SentimentAnalyzer{
             }
         }
     }
+
+    public void performSentimentAnalysis() {
+
+        String builder;
+        Process process = null;
+        String output = null;
+        String dir = System.getProperty("user.dir") + "/";
+        builder = dir + Constants.SHELL_SCRIPT_NAME + " " +  Constants.PYTHON_PROGRAM_ARGUMENT;
+        try {
+            process = Runtime.getRuntime().exec(builder);
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            if (stdError.readLine() != null) {
+                System.err.println("Error in Sentiment Analysis: " + stdError);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

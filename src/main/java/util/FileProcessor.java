@@ -28,7 +28,7 @@ public class FileProcessor {
             System.err.println("File not found!");
             System.exit(-1);
         } catch (NullPointerException npe) {
-            System.err.println("Seems like a file was missing while passing the arguments to the program.");
+            System.err.println("Please check the program arguments passed and rerun.");
         } finally {
             System.out.println();
         }

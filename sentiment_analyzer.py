@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import multiprocessing
 
 from textblob import TextBlob
 
@@ -24,7 +25,6 @@ def write_to_file(objs, fname, dir):
             line = json.dumps(line)
             f.write(line + '\n')
         f.truncate()
-    print("Sentiment analysis completed on " + fname)
 
 
 def analyze(objects, filename, path):
@@ -44,14 +44,29 @@ def analyze(objects, filename, path):
     write_to_file(all_objects, filename, path)
 
 
+def perform_ops(path, file):
+    read_data(path + file)
+    analyze(all_objects, file, path)
+
+
 def initialize():
     try:
         if len(sys.argv) > 1:
             path = sys.argv[1]
+            count = 0
+            onlyfiles = next(os.walk(path))[2]
+            processes = []
+            for f in onlyfiles:
+                if f.endswith(".json"):
+                    count += 1
             for file in os.listdir(path):
                 if file.endswith(".json"):
-                    read_data(path + file)
-                    analyze(all_objects, file, path)
+                    # Creating processes to handle each file individually.
+                    p = multiprocessing.Process(target=perform_ops, args=(path, file,))
+                    processes.append(p)
+                    p.start()
+            for p in processes:
+                p.join()
         else:
             print("ERROR! Please provide a file path!\nUsage: ./controller.sh <file-path>")
             sys.exit()

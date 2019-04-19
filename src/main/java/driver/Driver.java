@@ -53,6 +53,7 @@ public class Driver {
 
         SentimentAnalyzer sentimentAnalyzer = new SentimentAnalyzer();
         sentimentAnalyzer.performSentimentAnalysis();
+        System.out.println("");
     }
 
     /**
