@@ -1,42 +1,55 @@
 package recommender;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.python.google.common.io.Resources;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.Properties;
+import java.util.Random;
 
 public class ConsumerCreator {
 
     public ConsumerCreator() { }
 
-    /*public static void main(String[] args) {
+    public static void main(String[] args) {
 
-        KafkaConsumer kafkaConsumer = new KafkaConsumer(properties);*/
-        //List topics = new ArrayList();
-        //topics.add("devglan-test");
-        //kafkaConsumer.subscribe(topics);
-//        try {
-//            while (true) {
-//                Duration duration = Duration.ofSeconds(5);
-//                ConsumerRecords<Long, String> records = kafkaConsumer.poll(duration);
-//                for (ConsumerRecord record : records) {
-//                    System.out.println(String.format("Topic - %s, Partition - %d, Value: %s", record.topic(), record.partition(), record.value()));
-//                }
-//            }
-//        } catch (Exception e) {
-//            System.out.println(e.getMessage());
-//        } finally {
-//            kafkaConsumer.close();
-//        }
-    //}
+        int timeouts = 0;
+        Consumer<String, String> consumer = createConsumer();
+        consumer.subscribe(Collections.singletonList("amazondata"));
 
-    public static Consumer createConsumer() {
-
-        Properties properties = new Properties();
-        properties.put("bootstrap.servers", "localhost:9092");
-        properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("group.id", "test-group");
-
-        return new KafkaConsumer(properties);
+        Duration duration = Duration.ofSeconds(3);
+        while(true) {
+            ConsumerRecords<String, String> records = consumer.poll(duration);
+            if (records.count() == 0) {
+                timeouts++;
+            } else {
+                records.forEach(record -> System.out.println("Got record: " + record.key() + "record string: " + record.toString()));
+            }
+            if (timeouts == 2000) break;
+        }
     }
+
+    public static Consumer<String, String> createConsumer() {
+
+        KafkaConsumer<String, String> consumer = null;
+        try (InputStream props = Resources.getResource("consumer.props").openStream()) {
+            Properties properties = new Properties();
+            properties.load(props);
+            if (properties.getProperty("group.id") == null) {
+                properties.setProperty("group.id", "group-" + new Random().nextInt(100000));
+            }
+            consumer = new KafkaConsumer<>(properties);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return consumer;
+    }
+
+
 }

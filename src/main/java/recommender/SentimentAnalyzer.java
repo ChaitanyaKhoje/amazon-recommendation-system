@@ -59,7 +59,6 @@ public class SentimentAnalyzer{
             if (stdError.readLine() != null) {
                 System.err.println("Error in Sentiment Analysis: " + stdError);
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }

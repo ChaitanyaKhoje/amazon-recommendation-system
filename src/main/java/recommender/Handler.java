@@ -1,10 +1,12 @@
 package recommender;
 
+import org.apache.kafka.clients.producer.Producer;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import util.Constants;
 import util.FileProcessor;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,40 +38,6 @@ public class Handler {
     private Map<String, Set<String>> productToUserMap = new HashMap<String, Set<String>>();
 
     public Handler() { }
-
-    /**
-     * Iterates over all the files residing in a given directory
-     * @param dirPath
-     */
-    public void processData(String dirPath, String inputFPath) {
-
-        if (inputFPath != null && !inputFPath.isEmpty()) {
-            File inputFile = new File(inputFPath);
-            if (inputFile.getName().endsWith(".json")) {
-                FileProcessor fp = new FileProcessor(inputFile.getPath());
-                while (fp.hasNextLine()) {
-                    String line = fp.getNextLine();
-                    parseInputData(line);
-                }
-            } else {
-                System.err.println("The input file should be a .json!\nPlease supply appropriate file and rerun.");
-                System.exit(-1);
-            }
-        }
-
-        File dir = new File(dirPath);
-        if (dir.isDirectory()) {
-            File[] files = dir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.getName().endsWith(".json")) {
-                        setFileProcessor(new FileProcessor(file.getPath()));
-                        populateInMemory();
-                    }
-                }
-            }
-        }
-    }
 
     /**
      * Populates in-memory module
@@ -221,6 +189,84 @@ public class Handler {
 
         productUsers.add(jsonObject.getString("reviewerID"));
         productToUserMap.put(product.getProductID(), productUsers);
+    }
+
+    /**
+     *  The entry point of the program:
+     *  Initializes zookeeper, starts kafka server.
+     */
+    public void produceData(String dirPath, String kafkaPath, int timeToSleep) {
+
+        // Start zookeeper service and the kafka server
+        //TODO: Check if the kafka server can be started with our shell script
+        //startServices(kafkaPath);
+        // Create the producer
+        final Producer<String, String> producer = ProducerCreator.createProducer();
+        // Start producing messages
+        ProducerHandler producerHandler = new ProducerHandler(dirPath, producer, Constants.TOPIC_NAME, timeToSleep);
+        Thread producerThread = new Thread(producerHandler);
+        System.out.println("DEBUG: Starting producer thread!");
+        producerThread.start();
+    }
+
+    public void startServices(String kafkaPath) {
+
+
+        String[] cmd = { "bash", "-c", "kafka_2.12-2.2.0/kafka_start.sh amazondata" };
+        try {
+            ProcessBuilder builder = new ProcessBuilder(cmd);
+            Process p = builder.start();
+            p.waitFor();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+        /*
+        String stopKafka = kafkaPath + "bin/kafka-server-stop.sh";
+        String stopKeeper = kafkaPath + "bin/zookeeper-server-stop.sh";
+
+        String zookeeperPath = kafkaPath + "bin/zookeeper-server-start.sh "+kafkaPath+"config/zookeeper.properties";
+        String kafkaBroker = kafkaPath + "bin/kafka-server-start.sh "+kafkaPath+"config/server.properties";
+        String topic = kafkaPath + "bin/kafka-topics.sh --create --zookeeper 127.0.0.1:2182 --replication-factor 1 --partitions 1 --topic read_dataset";
+        Process zookeeperProcess = null;
+        Process kafkaServerProcess = null;
+        Process topicProcess = null;
+        ProcessBuilder builder = null;
+        try {
+            // Stop Kafka
+            builder = new ProcessBuilder(stopKafka);
+            Process stopKafkaServerProcess = builder.start();
+            stopKafkaServerProcess.waitFor();
+            // Stop zookeeper
+            builder = new ProcessBuilder(stopKeeper);
+            Process stopZookeeperProcess = builder.start();
+            stopZookeeperProcess.waitFor();
+
+            // Start Zookeeper
+            builder = new ProcessBuilder();
+            builder.command(zookeeperPath);
+            zookeeperProcess = builder.start();
+            zookeeperProcess.waitFor();
+
+            // Start Kafka broker
+            builder = new ProcessBuilder();
+            builder.command(kafkaBroker);
+            kafkaServerProcess = builder.start();
+            kafkaServerProcess.waitFor();
+
+            //BufferedReader stdErrorBroker = new BufferedReader(new InputStreamReader(kafkaServerProcess.getErrorStream()));
+            // Set topic
+            builder = new ProcessBuilder(topic);
+            topicProcess = builder.start();
+            topicProcess.waitFor();
+
+            String zooErr = "";
+            String kafkaErr = "";
+            String topicErr = "";
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }*/
     }
 
     public Set<Product> getProducts() {

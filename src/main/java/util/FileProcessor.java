@@ -18,6 +18,7 @@ public class FileProcessor {
      * @param filePathIn input.json/delete.txt path is passed for Scanner.
      */
     public FileProcessor(String filePathIn) {
+
         File file = null;
         if (!filePathIn.isEmpty() || !filePathIn.equals("")) {
             file = new File(filePathIn);
