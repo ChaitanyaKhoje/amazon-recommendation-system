@@ -10,17 +10,15 @@ import java.util.concurrent.ExecutionException;
 
 public class ProducerHandler implements Runnable {
 
-    private final Producer<String, String> producer;
+    private final Producer<String, Product> producer;
     private String dataPath;
     private String topic;
-    private int sleepTime = 0;
 
-    public ProducerHandler(String dataDirectoryPath, Producer<String, String> producerIn, String topicIn, int sleepTimeIn) {
+    public ProducerHandler(String dataDirectoryPath, Producer<String, Product> producerIn, String topicIn) {
 
         dataPath = dataDirectoryPath;
         producer = producerIn;
         topic = topicIn;
-        sleepTime = sleepTimeIn;
     }
 
     @Override
@@ -52,26 +50,27 @@ public class ProducerHandler implements Runnable {
                             count++; // Counter to check how many messages were sent.
                             if ((count % 100) == 0) {
                                 try {
-                                    Thread.sleep(getSleepTime());
+                                    Thread.sleep(2000);
                                 } catch (InterruptedException e) {
                                     System.out.println("DEBUG: PROBLEM IN THREAD SLEEP");
                                     e.printStackTrace();
                                 }
                             }
+
                             String line = fp.getNextLine();
 
-                            RecordMetadata m = null;
+                            Product product = new Product(line);
+
+                            RecordMetadata m;
                             try {
-                                m = producer.send(new ProducerRecord<String, String>(getTopic(), line)).get();
+                                m = producer.send(new ProducerRecord<String, Product>(getTopic(), product)).get();
                                 System.out.println(m.toString());
+                                System.out.println("Message produced, offset: " + m.offset());
+                                System.out.println("Message produced, partition : " + m.partition());
+                                System.out.println("Message produced, topic: " + m.topic());
                             } catch (InterruptedException | ExecutionException e) {
                                 e.printStackTrace();
                             }
-                            System.out.println("Message produced, offset: " + m.offset());
-                            System.out.println("Message produced, partition : " + m.partition());
-                            System.out.println("Message produced, topic: " + m.topic());
-                            //producer.send(new ProducerRecord<String, String>(getTopic(), line));
-                            //System.out.println(line);
                         }
                     }
                 }
@@ -90,9 +89,5 @@ public class ProducerHandler implements Runnable {
 
     public String getTopic() {
         return topic;
-    }
-
-    public int getSleepTime() {
-        return sleepTime;
     }
 }

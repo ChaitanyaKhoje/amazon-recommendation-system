@@ -35,7 +35,7 @@ public class Handler {
 
     // To fetch list of users (reviewerIDs) for a particular product
     // Map --> <Product, Users>
-    private Map<String, Set<String>> productToUserMap = new HashMap<String, Set<String>>();
+    private Map<Double, Set<String>> productToUserMap = new HashMap<Double, Set<String>>();
 
     public Handler() { }
 
@@ -66,9 +66,9 @@ public class Handler {
 
         JSONObject jsonObject = new JSONObject(line);
         if (!jsonObject.isEmpty()) {
-            if (jsonObject.getString("asin").equals("1933622709")) {
+            /*if (jsonObject.getString("asin").equals("1933622709")) {
                 System.out.println("");
-            }
+            }*/
             Product product = new Product();
             if (jsonObject.has("helpful")) {
                 JSONArray helpfulJSONArr = jsonObject.getJSONArray("helpful");
@@ -76,19 +76,19 @@ public class Handler {
                 for (int i = 0; i < helpfulJSONArr.length(); i++) {
                     helpful[i] = helpfulJSONArr.optInt(i);
                 }
-                product.setHelpfulness(helpful);
+                product.setHelpful(helpful);
             } else {
-                product.setHelpfulness(new int[2]);
+                product.setHelpful(new int[2]);
             }
             if (jsonObject.has("overall")) {
-                product.setOverallRating(jsonObject.getInt("overall"));
+                product.setOverall(jsonObject.getInt("overall"));
             } else {
-                product.setOverallRating(0);
+                product.setOverall(0);
             }
             if (jsonObject.has("asin")) {
-                product.setProductID(jsonObject.getString("asin"));
+                product.setAsin(jsonObject.getLong("asin"));
             } else {
-                product.setProductID("");
+                product.setAsin(0);
             }
             if (jsonObject.has("reviewerID")) {
                 product.setReviewerID(jsonObject.getString("reviewerID"));
@@ -106,9 +106,9 @@ public class Handler {
                 product.setReviewerName("");
             }
             if (jsonObject.has("reviewTime")) {
-                product.setReviewTime(jsonObject.getString("reviewTime"));
+                product.setUnixReviewTime(jsonObject.getLong("reviewTime"));
             } else {
-                product.setReviewTime("");
+                product.setUnixReviewTime(0);
             }
             if (jsonObject.has("summary")) {
                 product.setSummary(jsonObject.getString("summary"));
@@ -188,22 +188,23 @@ public class Handler {
         }
 
         productUsers.add(jsonObject.getString("reviewerID"));
-        productToUserMap.put(product.getProductID(), productUsers);
+        productToUserMap.put(product.getAsin(), productUsers);
     }
 
     /**
      *  The entry point of the program:
      *  Initializes zookeeper, starts kafka server.
      */
-    public void produceData(String dirPath, String kafkaPath, int timeToSleep) {
+    public void produceData(String dirPath, String kafkaPath) {
 
         // Start zookeeper service and the kafka server
         //TODO: Check if the kafka server can be started with our shell script
-        //startServices(kafkaPath);
+        startServices(kafkaPath);
         // Create the producer
-        final Producer<String, String> producer = ProducerCreator.createProducer();
+        //final Producer<String, Product> producer = ProducerCreator.createProducer();
+        final Producer<String, Product> producer = ProducerCreator.createProducer();
         // Start producing messages
-        ProducerHandler producerHandler = new ProducerHandler(dirPath, producer, Constants.TOPIC_NAME, timeToSleep);
+        ProducerHandler producerHandler = new ProducerHandler(dirPath, producer, Constants.TOPIC_NAME);
         Thread producerThread = new Thread(producerHandler);
         System.out.println("DEBUG: Starting producer thread!");
         producerThread.start();
@@ -220,53 +221,6 @@ public class Handler {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-
-
-        /*
-        String stopKafka = kafkaPath + "bin/kafka-server-stop.sh";
-        String stopKeeper = kafkaPath + "bin/zookeeper-server-stop.sh";
-
-        String zookeeperPath = kafkaPath + "bin/zookeeper-server-start.sh "+kafkaPath+"config/zookeeper.properties";
-        String kafkaBroker = kafkaPath + "bin/kafka-server-start.sh "+kafkaPath+"config/server.properties";
-        String topic = kafkaPath + "bin/kafka-topics.sh --create --zookeeper 127.0.0.1:2182 --replication-factor 1 --partitions 1 --topic read_dataset";
-        Process zookeeperProcess = null;
-        Process kafkaServerProcess = null;
-        Process topicProcess = null;
-        ProcessBuilder builder = null;
-        try {
-            // Stop Kafka
-            builder = new ProcessBuilder(stopKafka);
-            Process stopKafkaServerProcess = builder.start();
-            stopKafkaServerProcess.waitFor();
-            // Stop zookeeper
-            builder = new ProcessBuilder(stopKeeper);
-            Process stopZookeeperProcess = builder.start();
-            stopZookeeperProcess.waitFor();
-
-            // Start Zookeeper
-            builder = new ProcessBuilder();
-            builder.command(zookeeperPath);
-            zookeeperProcess = builder.start();
-            zookeeperProcess.waitFor();
-
-            // Start Kafka broker
-            builder = new ProcessBuilder();
-            builder.command(kafkaBroker);
-            kafkaServerProcess = builder.start();
-            kafkaServerProcess.waitFor();
-
-            //BufferedReader stdErrorBroker = new BufferedReader(new InputStreamReader(kafkaServerProcess.getErrorStream()));
-            // Set topic
-            builder = new ProcessBuilder(topic);
-            topicProcess = builder.start();
-            topicProcess.waitFor();
-
-            String zooErr = "";
-            String kafkaErr = "";
-            String topicErr = "";
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }*/
     }
 
     public Set<Product> getProducts() {
@@ -293,7 +247,7 @@ public class Handler {
         return userToProductMap;
     }
 
-    public Map<String, Set<String>> getProductToUserMap() {
+    public Map<Double, Set<String>> getProductToUserMap() {
         return productToUserMap;
     }
 

@@ -1,7 +1,7 @@
 bootstrap.servers=127.0.0.1:9092
+#key.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer
+#value.deserializer=org.apache.kafka.connect.json.JsonDeserializer
 enable.auto.commit=true
-key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
-value.deserializer=org.apache.kafka.common.serialization.StringDeserializer
 auto.offset.reset=earliest
 # fast session timeout makes it more fun to play with failover
 session.timeout.ms=10000

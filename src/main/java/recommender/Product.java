@@ -1,20 +1,142 @@
 package recommender;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.Arrays;
 
 public class Product {
 
     private String reviewerID = "";
-    private String productID = "";
+    private long asin = 0;
     private String reviewerName = "";
-    private int[] helpfulness;
+    private int[] helpful;
     private String reviewText = "";
-    private int overallRating;
+    private int overall;
     private String summary = "";
+    private long unixReviewTime;
     private String reviewTime;
     private int sentiment = 0;
 
     public Product() { }
+
+    public Product(String line) {
+        JSONObject jsonObject = new JSONObject(line);
+        if (!jsonObject.isEmpty()) {
+            if (jsonObject.has("helpful")) {
+                JSONArray helpfulJSONArr = jsonObject.getJSONArray("helpful");
+                int[] helpful = new int[helpfulJSONArr.length()];
+                for (int i = 0; i < helpfulJSONArr.length(); i++) {
+                    helpful[i] = helpfulJSONArr.optInt(i);
+                }
+                setHelpful(helpful);
+            } else {
+                setHelpful(new int[2]);
+            }
+            if (jsonObject.has("overall")) {
+                setOverall(jsonObject.getInt("overall"));
+            } else {
+                setOverall(0);
+            }
+            if (jsonObject.has("asin")) {
+                setAsin(jsonObject.getLong("asin"));
+            } else {
+                setAsin(0);
+            }
+            if (jsonObject.has("reviewerID")) {
+                setReviewerID(jsonObject.getString("reviewerID"));
+            } else {
+                setReviewerID("");
+            }
+            if (jsonObject.has("reviewText")) {
+                setReviewText(jsonObject.getString("reviewText"));
+            } else {
+                setReviewText("");
+            }
+            if (jsonObject.has("reviewerName")) {
+                setReviewerName(jsonObject.getString("reviewerName"));
+            } else {
+                setReviewerName("");
+            }
+            if (jsonObject.has("unixReviewTime")) {
+                setUnixReviewTime(jsonObject.getLong("unixReviewTime"));
+            } else {
+                setUnixReviewTime(0);
+            }
+            if (jsonObject.has("summary")) {
+                setSummary(jsonObject.getString("summary"));
+            } else {
+                setSummary("");
+            }
+            if (jsonObject.has("sentiment")) {
+                setSentiment(jsonObject.getInt("sentiment"));
+            } else {
+                setSentiment(0);
+            }
+        }
+    }
+
+    public JSONObject parseString(Product line) {
+
+        JSONObject jsonObject = new JSONObject(line);
+        if (!jsonObject.isEmpty()) {
+            /*if (jsonObject.getString("asin").equals("1933622709")) {
+                System.out.println("");
+            }*/
+
+            if (jsonObject.has("helpful")) {
+                JSONArray helpfulJSONArr = jsonObject.getJSONArray("helpful");
+                int[] helpful = new int[helpfulJSONArr.length()];
+                for (int i = 0; i < helpfulJSONArr.length(); i++) {
+                    helpful[i] = helpfulJSONArr.optInt(i);
+                }
+                setHelpful(helpful);
+            } else {
+                setHelpful(new int[2]);
+            }
+            if (jsonObject.has("overall")) {
+                setOverall(jsonObject.getInt("overall"));
+            } else {
+                setOverall(0);
+            }
+            if (jsonObject.has("asin")) {
+                setAsin(jsonObject.getLong("asin"));
+            } else {
+                setAsin(0);
+            }
+            if (jsonObject.has("reviewerID")) {
+                setReviewerID(jsonObject.getString("reviewerID"));
+            } else {
+                setReviewerID("");
+            }
+            if (jsonObject.has("reviewText")) {
+                setReviewText(jsonObject.getString("reviewText"));
+            } else {
+                setReviewText("");
+            }
+            if (jsonObject.has("reviewerName")) {
+                setReviewerName(jsonObject.getString("reviewerName"));
+            } else {
+                setReviewerName("");
+            }
+            if (jsonObject.has("unixReviewTime")) {
+                setUnixReviewTime(jsonObject.getLong("unixReviewTime"));
+            } else {
+                setUnixReviewTime(0);
+            }
+            if (jsonObject.has("summary")) {
+                setSummary(jsonObject.getString("summary"));
+            } else {
+                setSummary("");
+            }
+            if (jsonObject.has("sentiment")) {
+                setSentiment(jsonObject.getInt("sentiment"));
+            } else {
+                setSentiment(0);
+            }
+        }
+        return jsonObject;
+    }
 
     public String getReviewerID() {
         return reviewerID;
@@ -24,12 +146,12 @@ public class Product {
         this.reviewerID = reviewerID;
     }
 
-    public String getProductID() {
-        return productID;
+    public double getAsin() {
+        return asin;
     }
 
-    public void setProductID(String productID) {
-        this.productID = productID;
+    public void setAsin(long asin) {
+        this.asin = asin;
     }
 
     public String getReviewerName() {
@@ -40,12 +162,12 @@ public class Product {
         this.reviewerName = reviewerName;
     }
 
-    public int[] getHelpfulness() {
-        return helpfulness;
+    public int[] getHelpful() {
+        return helpful;
     }
 
-    public void setHelpfulness(int[] helpfulness) {
-        this.helpfulness = helpfulness;
+    public void setHelpful(int[] helpful) {
+        this.helpful = helpful;
     }
 
     public String getReviewText() {
@@ -56,12 +178,12 @@ public class Product {
         this.reviewText = reviewText;
     }
 
-    public int getOverallRating() {
-        return overallRating;
+    public int getOverall() {
+        return overall;
     }
 
-    public void setOverallRating(int overallRating) {
-        this.overallRating = overallRating;
+    public void setOverall(int overall) {
+        this.overall = overall;
     }
 
     public String getSummary() {
@@ -72,12 +194,12 @@ public class Product {
         this.summary = summary;
     }
 
-    public String getReviewTime() {
-        return reviewTime;
+    public double getUnixReviewTime() {
+        return unixReviewTime;
     }
 
-    public void setReviewTime(String reviewTime) {
-        this.reviewTime = reviewTime;
+    public void setUnixReviewTime(long unixReviewTime) {
+        this.unixReviewTime = unixReviewTime;
     }
 
     public int getSentiment() {
@@ -88,16 +210,25 @@ public class Product {
         this.sentiment = sentiment;
     }
 
+    public String getReviewTime() {
+        return reviewTime;
+    }
+
+    public void setReviewTime(String reviewTime) {
+        this.reviewTime = reviewTime;
+    }
+
     @Override
     public String toString() {
         return "Product{" +
                 "reviewerID='" + reviewerID + '\'' +
-                ", productID='" + productID + '\'' +
+                ", asin=" + asin +
                 ", reviewerName='" + reviewerName + '\'' +
-                ", helpfulness=" + Arrays.toString(helpfulness) +
+                ", helpful=" + Arrays.toString(helpful) +
                 ", reviewText='" + reviewText + '\'' +
-                ", overallRating=" + overallRating +
+                ", overall=" + overall +
                 ", summary='" + summary + '\'' +
+                ", unixReviewTime=" + unixReviewTime +
                 ", reviewTime='" + reviewTime + '\'' +
                 ", sentiment=" + sentiment +
                 '}';

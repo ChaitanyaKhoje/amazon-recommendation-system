@@ -2,13 +2,12 @@ package driver;
 
 import recommender.Handler;
 import recommender.Recommender;
-import recommender.SentimentAnalyzer;
 
 import java.util.Scanner;
 
 public class Driver {
 
-    private Handler handler = new Handler();
+    private final static Handler handler = new Handler();
     /**
      * The main method; the Driver.
      * @param args
@@ -19,15 +18,11 @@ public class Driver {
             // PROGRAM ARGUMENTS:
             // 1st argument is the dataset/JSON files
             // 2nd argument is the KAFKA folder path (to start zookeeper and kafka)
-            // 3rd argument is a thread sleep time in seconds. (interval for kafka producer)
-
-            Handler handler = new Handler();
-            initialize(args[0], args[1], Integer.parseInt(args[2]), handler);
-            getUserInput();
-
-            /*startSentimentAnalyzer();   // Process holds until operation complete, need to change later.
-            Handler handler = initialize(args[0], args[1]);
-            startRecommender(handler);*/
+            // 3rd argument is the ip address of the consumer server
+            // 4th argument is the port number of the consumer server
+            // Handler object is to be used while producing and while recommending, hence declared at class level as static
+            initialize(args[0], args[1], handler);
+            getUserInput(args);
         }
     }
 
@@ -38,7 +33,7 @@ public class Driver {
      */
     public static boolean validate(String[] args) {
 
-        if (args.length == 3) {
+        if (args.length == 4) {
             return true;
         } else {
             System.err.println("Invalid number of arguments passed!\nPlease pass in the data directory-path & the input file path");
@@ -46,7 +41,7 @@ public class Driver {
         }
     }
 
-    public static void getUserInput() {
+    public static void getUserInput(String[] args) {
 
         while(true) {
             Scanner sc = new Scanner(System.in);
@@ -58,12 +53,13 @@ public class Driver {
             int input = sc.nextInt();
             switch (input) {
                 case 1:
-
+                    startRecommender(handler, args, false);
                     break;
                 case 2:
+                    startRecommender(handler, args, true);
                     break;
                 case 3:
-
+                    shutdown();
                     break;
             }
         }
@@ -74,41 +70,24 @@ public class Driver {
      * @param dirPath
      * @return
      */
-    public static void initialize(String dirPath, String kafkaPath, int timeToSleep, Handler handler) {
+    public static void initialize(String dirPath, String kafkaPath, Handler handler) {
 
-        handler.produceData(dirPath, kafkaPath, timeToSleep);
+        handler.produceData(dirPath, kafkaPath);
     }
 
     public static void shutdown() {
 
+        System.out.println("Shutting down...");
 
-    }
-
-    /**
-     * Initializes Kafka producer(s)
-     */
-    public static void produce(String kafkaPath) {
-
-
-    }
-
-    /**
-     * Performs sentiment analysis.
-     */
-    public static void startSentimentAnalyzer() {
-
-        SentimentAnalyzer sentimentAnalyzer = new SentimentAnalyzer();
-        sentimentAnalyzer.performSentimentAnalysis();
-        System.out.println("");
     }
 
     /**
      * Starts the recommendation engine
      * The Handler instance holds all the data in-memory that we need for the recommendation system.
      */
-    public static void startRecommender(Handler handler) {
+    public static void startRecommender(Handler handler, String[] args, boolean sentimentAnalysis) {
 
         Recommender recommender = new Recommender(handler);
-        recommender.start();
+        recommender.start(args, sentimentAnalysis);
     }
 }

@@ -1,9 +1,10 @@
 bootstrap.servers=127.0.0.1:9092
+#key.serializer=org.apache.kafka.common.serialization.ByteArraySerializer
+#value.serializer=org.apache.kafka.connect.json.JsonSerializer
 acks=all
 retries=0
 batch.size=16384
 auto.commit.interval.ms=1000
 linger.ms=0
-key.serializer=org.apache.kafka.common.serialization.StringSerializer
-value.serializer=org.apache.kafka.common.serialization.StringSerializer
 block.on.buffer.full=true
+#listeners=PLAINTEXT://127.0.0.1:9092

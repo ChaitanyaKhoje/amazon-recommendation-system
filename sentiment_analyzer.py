@@ -1,34 +1,18 @@
 import json
 import sys
 import os
-import multiprocessing
+import socket
+import pickle
+from kafka import KafkaConsumer
 
 from textblob import TextBlob
 
 all_objects = []
+fragments = []
 
 
-def read_data(file):
-    # Clearing any previous data from the previous read file
-    all_objects.clear()
-
-    # Looping over file lines
-    for line in open(file):
-        data = json.loads(line)
-        all_objects.append(data)
-
-
-def write_to_file(objs, fname, dir):
-    with open(dir + fname, 'r+') as f:
-        f.seek(0)
-        for line in objs:
-            line = json.dumps(line)
-            f.write(line + '\n')
-        f.truncate()
-
-
-def analyze(objects, filename, path):
-    for obj in objects:
+def analyze():
+    for obj in all_objects:
         # Add sentiment column to the record
         obj['sentiment'] = 0
         sentence = obj['reviewText']
@@ -41,38 +25,61 @@ def analyze(objects, filename, path):
                 # print("Negative")
                 obj['sentiment'] = -1
             # print(obj)
-    write_to_file(all_objects, filename, path)
 
 
-def perform_ops(path, file):
-    read_data(path + file)
-    analyze(all_objects, file, path)
+def perform_operations():
+    # Read connection details from the connections.txt
+    dir_path = os.path.dirname(os.path.realpath(__file__))  # Get current directory
+    f = open(dir_path + '/connections.txt', 'r')
+    c = f.readlines()
+    temp = c[0].split(",")
+    ip = temp[0]
+    port = int(temp[1])
+    f.close()
 
+    # Create a TCP/IP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = (ip, port)
+    print('Starting up on {} port {}'.format(*server_address))
 
-def initialize():
     try:
-        if len(sys.argv) > 1:
-            path = sys.argv[1]
-            count = 0
-            onlyfiles = next(os.walk(path))[2]
-            processes = []
-            for f in onlyfiles:
-                if f.endswith(".json"):
-                    count += 1
-            for file in os.listdir(path):
-                if file.endswith(".json"):
-                    # Creating processes to handle each file individually.
-                    p = multiprocessing.Process(target=perform_ops, args=(path, file,))
-                    processes.append(p)
-                    p.start()
-            for p in processes:
-                p.join()
-        else:
-            print("ERROR! Please provide a file path!\nUsage: ./controller.sh <file-path>")
-            sys.exit()
-    except IndexError:
-        print("ERROR! An exception has occurred, please check if the arguments were passed correctly and rerun")
-        sys.exit()
+        # Bind the socket to the port
+        sock.bind(server_address)
+    except socket.error as err:
+        print('Bind failed. Error Code : ' .format(err))
+        sys.exit(-1)
+
+    # Listen for incoming connections
+    sock.listen(1)
+
+    while True:
+        # Wait for a connection
+        print('waiting for a connection')
+        conn, client_address = sock.accept()
+        try:
+            print('connection from', client_address)
+            conn.settimeout(3)
+            while True:
+                chunk = conn.recv(100000).decode('UTF-8')
+                print(chunk)
+                if not chunk:
+                    break
+                fragments.append(chunk)
+        except socket.timeout:
+            print("Done reading.. connection timed out after receiving all data.")
+
+        result = "".join(fragments)
+        messages = result.split('||')
+        for message in messages:
+            if message.rstrip("\n"):
+                data = json.loads(message)
+                all_objects.append(data)
+        analyze()
+        res = ','.join(str(v) for v in all_objects)
+        #conn.sendall(res.encode('UTF-8'))
+        conn.send(json.dumps(res).encode("UTF-8"))
 
 
-initialize()
+if __name__ == '__main__':
+    # Accept incoming socket from the java program
+    perform_operations()

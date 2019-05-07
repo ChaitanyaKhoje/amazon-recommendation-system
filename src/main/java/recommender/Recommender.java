@@ -1,5 +1,17 @@
 package recommender;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,11 +39,90 @@ public class Recommender {
     /**
      * Parent method of the recommendation system
      */
-    public void start() {
+    public void start(String[] args, boolean sentimentAnalysis) {
 
         if (handler != null) {
+            // IP and port for consumer on 2nd and 3rd argument.
+            if (sentimentAnalysis) informConsumer(args[2], Integer.parseInt(args[3]), sentimentAnalysis);
+        }
+    }
 
-            filterCollaboratively();
+    public void informConsumer(String ip, int port, boolean isSentimentNeeded) {
+        // Create a client to communicate to the consumer and tell that sentiment analysis is required!
+        Socket clientSocket = null;
+        int confirmSentimentAnalysis = 0;
+        try {
+            // This connects to the consumer server, tells it if we need to perform sentiment analysis.
+            clientSocket = connect(ip, port);
+            if (clientSocket != null) {
+                OutputStreamWriter osw = new OutputStreamWriter(clientSocket.getOutputStream());
+                BufferedWriter bw = new BufferedWriter(osw);
+                if (isSentimentNeeded) confirmSentimentAnalysis = 1;
+                bw.write(confirmSentimentAnalysis + "\n");
+                bw.flush();
+                BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                String reply = br.readLine();
+                if (!reply.equals("")) {
+                    System.out.println(reply);
+                } else {
+                    System.err.println("Sentiment analysis could not be initialized.. exiting!!");
+                    System.exit(-1);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void recommend(ConsumerRecords<Long, Product> records, String[] pythonServerDetails, boolean isSentimentNeeded) {
+
+        if(isSentimentNeeded) {
+            performSentimentAnalysis(records, pythonServerDetails);
+        } else {
+
+        }
+    }
+
+    public void performSentimentAnalysis(ConsumerRecords<Long, Product> records, String[] pythonServerDetails) {
+
+        String ip = pythonServerDetails[0];
+        int port = Integer.parseInt(pythonServerDetails[1]);
+        Socket socket = null;
+
+        try {
+            socket = new Socket(ip, port);
+            PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+            //DataInputStream ds = new DataInputStream(socket.getInputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            StringBuilder sb = new StringBuilder();
+
+            for (ConsumerRecord<Long, Product> record: records) {
+                // Create JSON object and send it to python code
+
+                System.out.println(record.value());
+                Product product = new Product();
+                JSONObject jsonObject = product.parseString(record.value());
+                sb.append(jsonObject);
+                sb.append("||");
+                // Converting the json object to the product class object
+
+            }
+            
+            printWriter.println(sb.toString());
+            printWriter.flush();
+
+            String response = br.readLine();
+            System.out.println(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -103,5 +194,19 @@ public class Recommender {
             }
         }
         return prds;
+    }
+
+    /**
+     * Connects to the consumer client and tells it if it has to use sent-analy or not.
+     * @param ip
+     * @param port
+     * @return
+     * @throws IOException
+     */
+    private Socket connect(String ip, int port) throws IOException {
+
+        Socket socket = null;
+        socket = new Socket(ip, port);
+        return socket;
     }
 }
