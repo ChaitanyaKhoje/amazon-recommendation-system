@@ -1,5 +1,8 @@
 package util;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -33,6 +36,34 @@ public class FileProcessor {
         } finally {
             System.out.println();
         }
+    }
+
+    /**
+     * Returns python server details from a text file.
+     * @return String[]
+     */
+    public static String[] getServerDetails(String server) {
+
+        // Connections file has two servers, one for java (consumer) and another for python (sent analysis)
+        String connectionsFilePath = System.getProperty("user.dir") + "/connections.json";
+        FileProcessor connProcessor = new FileProcessor(connectionsFilePath);
+        String[] details = new String[2];
+        while(connProcessor.hasNextLine()) {
+            String line = connProcessor.getNextLine();
+            JSONObject obj = new JSONObject(line);
+            JSONArray arr = obj.getJSONArray("servers");
+
+            for(int i = 0; i < arr.length(); i++) {
+                JSONObject j = arr.getJSONObject(i);
+                if (j.has(server)) {
+                    JSONArray lang = j.getJSONArray(server);
+                    details[0] = lang.getJSONObject(0).getString("ip");
+                    details[1] = lang.getJSONObject(1).getString("port");
+                    break;
+                }
+            }
+        }
+        return details;
     }
 
     /**

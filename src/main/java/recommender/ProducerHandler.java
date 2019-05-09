@@ -56,11 +56,8 @@ public class ProducerHandler implements Runnable {
                                     e.printStackTrace();
                                 }
                             }
-
                             String line = fp.getNextLine();
-
                             Product product = new Product(line);
-
                             RecordMetadata m;
                             try {
                                 m = producer.send(new ProducerRecord<String, Product>(getTopic(), product)).get();

@@ -2,7 +2,6 @@ import json
 import sys
 import os
 import socket
-import pickle
 from kafka import KafkaConsumer
 
 from textblob import TextBlob
@@ -12,6 +11,7 @@ fragments = []
 
 
 def analyze():
+    print("Performing sentiment analysis..")
     for obj in all_objects:
         # Add sentiment column to the record
         obj['sentiment'] = 0
@@ -24,22 +24,23 @@ def analyze():
             else:
                 # print("Negative")
                 obj['sentiment'] = -1
-            # print(obj)
 
 
 def perform_operations():
-    # Read connection details from the connections.txt
+    # Read connection details from the connections.json
     dir_path = os.path.dirname(os.path.realpath(__file__))  # Get current directory
-    f = open(dir_path + '/connections.txt', 'r')
-    c = f.readlines()
-    temp = c[0].split(",")
-    ip = temp[0]
-    port = int(temp[1])
+    f = open(dir_path + '/connections.json', 'r')
+    json_result = json.load(f)
+    json_list = json_result['servers']
+    conn_details = json_list[0].get('python')
+    ip = conn_details[0].get('ip', '')
+    port = int(conn_details[1].get('port', ''))
     f.close()
 
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_address = (ip, port)
+    print("---------------------------")
     print('Starting up on {} port {}'.format(*server_address))
 
     try:
@@ -61,13 +62,13 @@ def perform_operations():
             conn.settimeout(3)
             while True:
                 chunk = conn.recv(100000).decode('UTF-8')
-                print(chunk)
                 if not chunk:
                     break
                 fragments.append(chunk)
         except socket.timeout:
             print("Done reading.. connection timed out after receiving all data.")
 
+        print("Processing received data...")
         result = "".join(fragments)
         messages = result.split('||')
         for message in messages:
@@ -75,9 +76,13 @@ def perform_operations():
                 data = json.loads(message)
                 all_objects.append(data)
         analyze()
-        res = ','.join(str(v) for v in all_objects)
-        #conn.sendall(res.encode('UTF-8'))
-        conn.send(json.dumps(res).encode("UTF-8"))
+        print("Sentiment analysis complete.")
+        print("Attempting to send results..")
+        # res = ','.join(str(v) for v in all_objects)
+        # conn.sendall(res.encode('UTF-8'))
+        conn.sendall(json.dumps(all_objects).encode("UTF-8"))
+        conn.close()
+        print("Done.")
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ import java.util.Arrays;
 public class Product {
 
     private String reviewerID = "";
-    private long asin = 0;
+    private String asin = "";
     private String reviewerName = "";
     private int[] helpful;
     private String reviewText = "";
@@ -39,9 +39,10 @@ public class Product {
                 setOverall(0);
             }
             if (jsonObject.has("asin")) {
-                setAsin(jsonObject.getLong("asin"));
+                String asin = jsonObject.getString("asin");
+                setAsin("\'"+asin+"\'");
             } else {
-                setAsin(0);
+                setAsin("");
             }
             if (jsonObject.has("reviewerID")) {
                 setReviewerID(jsonObject.getString("reviewerID"));
@@ -63,6 +64,12 @@ public class Product {
             } else {
                 setUnixReviewTime(0);
             }
+            if (jsonObject.has("reviewTime")) {
+                String time = jsonObject.getString("reviewTime");
+                setReviewTime("\'"+time+"\'");
+            } else {
+                setReviewTime("");
+            }
             if (jsonObject.has("summary")) {
                 setSummary(jsonObject.getString("summary"));
             } else {
@@ -76,7 +83,7 @@ public class Product {
         }
     }
 
-    public JSONObject parseString(Product line) {
+    public JSONObject getJSONObjectForProduct(Product line) {
 
         JSONObject jsonObject = new JSONObject(line);
         if (!jsonObject.isEmpty()) {
@@ -100,9 +107,9 @@ public class Product {
                 setOverall(0);
             }
             if (jsonObject.has("asin")) {
-                setAsin(jsonObject.getLong("asin"));
+                setAsin(jsonObject.getString("asin"));
             } else {
-                setAsin(0);
+                setAsin("");
             }
             if (jsonObject.has("reviewerID")) {
                 setReviewerID(jsonObject.getString("reviewerID"));
@@ -146,11 +153,11 @@ public class Product {
         this.reviewerID = reviewerID;
     }
 
-    public double getAsin() {
+    public String getAsin() {
         return asin;
     }
 
-    public void setAsin(long asin) {
+    public void setAsin(String asin) {
         this.asin = asin;
     }
 

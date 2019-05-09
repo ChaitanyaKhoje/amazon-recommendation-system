@@ -7,4 +7,4 @@ batch.size=16384
 auto.commit.interval.ms=1000
 linger.ms=0
 block.on.buffer.full=true
-#listeners=PLAINTEXT://127.0.0.1:9092
+listeners=PLAINTEXT://127.0.0.1:9092

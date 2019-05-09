@@ -1,12 +1,16 @@
 package recommender;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.Producer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import util.Constants;
 import util.FileProcessor;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,10 +23,10 @@ public class Handler {
 
     private FileProcessor fileProcessor = null;
 
-    // Holds the input data read from input.txt
+    // Holds the input data read from input.json
     private Map<String, List<String>> input = new HashMap<String, List<String>>();
     // All products
-    private Set<Product> products = new HashSet<Product>();
+    private Set<String> products = new HashSet<String>();
     // All users by their review IDs
     private Set<String> users = new HashSet<String>();
 
@@ -35,132 +39,72 @@ public class Handler {
 
     // To fetch list of users (reviewerIDs) for a particular product
     // Map --> <Product, Users>
-    private Map<Double, Set<String>> productToUserMap = new HashMap<Double, Set<String>>();
+    private Map<String, Set<String>> productToUserMap = new HashMap<String, Set<String>>();
+
+    private List<Customer> customers = new ArrayList<Customer>();
 
     public Handler() { }
 
     /**
      * Populates in-memory module
+     *
+     * @param records
      */
-    public void populateInMemory() {
+    public void populateInMemory(ConsumerRecords<Long, Product> records) {
 
-        if (fileProcessor != null) {
-            while (fileProcessor.hasNextLine()) {
-                // Build Product object --
-                String line = fileProcessor.getNextLine();
-                if (line != null && !line.isEmpty()) {
-                    System.out.println(line);
-                    parseProductData(line);
-                } else {
-                    System.out.println("DEBUG: Line empty while parsing!");
-                }
-            }
+        for (ConsumerRecord<Long, Product> record : records) {
+            parseProductData(record.value());
         }
     }
 
     /**
-     * Parses input line
-     * @param line
+     * Add the products that were consumed.
+     *
+     * @param product
      */
-    public void parseProductData(String line) {
+    public void parseProductData(Product product) {
 
-        JSONObject jsonObject = new JSONObject(line);
-        if (!jsonObject.isEmpty()) {
-            /*if (jsonObject.getString("asin").equals("1933622709")) {
-                System.out.println("");
-            }*/
-            Product product = new Product();
-            if (jsonObject.has("helpful")) {
-                JSONArray helpfulJSONArr = jsonObject.getJSONArray("helpful");
-                int[] helpful = new int[helpfulJSONArr.length()];
-                for (int i = 0; i < helpfulJSONArr.length(); i++) {
-                    helpful[i] = helpfulJSONArr.optInt(i);
-                }
-                product.setHelpful(helpful);
-            } else {
-                product.setHelpful(new int[2]);
-            }
-            if (jsonObject.has("overall")) {
-                product.setOverall(jsonObject.getInt("overall"));
-            } else {
-                product.setOverall(0);
-            }
-            if (jsonObject.has("asin")) {
-                product.setAsin(jsonObject.getLong("asin"));
-            } else {
-                product.setAsin(0);
-            }
-            if (jsonObject.has("reviewerID")) {
-                product.setReviewerID(jsonObject.getString("reviewerID"));
-            } else {
-                product.setReviewerID("");
-            }
-            if (jsonObject.has("reviewText")) {
-                product.setReviewText(jsonObject.getString("reviewText"));
-            } else {
-                product.setReviewText("");
-            }
-            if (jsonObject.has("reviewerName")) {
-                product.setReviewerName(jsonObject.getString("reviewerName"));
-            } else {
-                product.setReviewerName("");
-            }
-            if (jsonObject.has("reviewTime")) {
-                product.setUnixReviewTime(jsonObject.getLong("reviewTime"));
-            } else {
-                product.setUnixReviewTime(0);
-            }
-            if (jsonObject.has("summary")) {
-                product.setSummary(jsonObject.getString("summary"));
-            } else {
-                product.setSummary("");
-            }
-            if (jsonObject.has("sentiment")) {
-                product.setSentiment(jsonObject.getInt("sentiment"));
-            } else {
-                product.setSentiment(0);
-            }
+        products.add(product.getAsin());
+        users.add(product.getReviewerID());
+        // Update customer data
 
-            products.add(product);
-            users.add(product.getReviewerID());
 
-            if (jsonObject.has("asin")) productsMap.put(jsonObject.getString("asin"), product);
+    }
 
-            // DEBUG
-            if (jsonObject.getString("reviewerID").equals("A1L5P841VIO02V")) {
-                System.out.println();
-            }
-            mapDetails(jsonObject, product);     // Store all the required mapping for recommendation
+    public void updateSentiments(String response) {
+
+        JSONArray jsonArray = new JSONArray(response);
+
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(i);
+            System.out.println(jsonObject);
+            // Update sentiment of the product by user level
         }
     }
 
     /**
      * Parses the input.json file for a reviewer and the products he bought.
-     * @param line
      */
-    public void parseInputData(String line) {
+    public void parseInputData() {
 
-        if (line != null && !line.isEmpty()) {
-            String rID = "";
-            List<String> boughtProducts = new ArrayList<String>();
-            JSONObject jsonObject = new JSONObject(line);
-            if (!jsonObject.isEmpty()) {
-                if (jsonObject.has("reviewerID")) {
-                    rID = jsonObject.getString("reviewerID");
-                }
-                if (jsonObject.has("products_bought")) {
-                    JSONArray productsJObs = jsonObject.getJSONArray("products_bought");
-                    for (int i = 0; i < productsJObs.length(); i++) {
-                        boughtProducts.add(productsJObs.optString(i));
-                    }
-                }
-                input.put(rID, boughtProducts);
+        String path = System.getProperty("user.dir") + "/data/input/input.json";
+        FileProcessor inputFP = new FileProcessor(path);
+        while (inputFP.hasNextLine()) {
+            String line = inputFP.getNextLine();
+            if (line != null && !line.equals("")) {
+                JSONObject j = new JSONObject(line);
+                String customerName = j.getString("customer");
+                String productBought = j.getString("product");
+                List<String> tempProducts = input.get(customerName) == null ? new ArrayList<>() : input.get(customerName);
+                tempProducts.add(productBought);
+                input.put(customerName, tempProducts);
             }
         }
     }
 
     /**
      * Fills required data into different sets and maps
+     *
      * @param jsonObject
      * @param product
      */
@@ -192,38 +136,54 @@ public class Handler {
     }
 
     /**
-     *  The entry point of the program:
-     *  Initializes zookeeper, starts kafka server.
+     * The entry point of the program:
+     * Initializes the kafka producer.
      */
-    public void produceData(String dirPath, String kafkaPath) {
+    public void produceData(String dirPath) {
 
-        // Start zookeeper service and the kafka server
-        //TODO: Check if the kafka server can be started with our shell script
-        startServices(kafkaPath);
+        // Start zookeeper service and the kafka server before this.
+        // startServices(kafkaPath);
         // Create the producer
-        //final Producer<String, Product> producer = ProducerCreator.createProducer();
         final Producer<String, Product> producer = ProducerCreator.createProducer();
-        // Start producing messages
         ProducerHandler producerHandler = new ProducerHandler(dirPath, producer, Constants.TOPIC_NAME);
         Thread producerThread = new Thread(producerHandler);
         System.out.println("DEBUG: Starting producer thread!");
+        // Start producing messages from in a new thread
         producerThread.start();
     }
 
     public void startServices(String kafkaPath) {
 
 
-        String[] cmd = { "bash", "-c", "kafka_2.12-2.2.0/kafka_start.sh amazondata" };
+        String[] cmd = {"bash", "-c", "kafka_2.12-2.2.0/kafka_start.sh amazondata"};
         try {
-            ProcessBuilder builder = new ProcessBuilder(cmd);
-            Process p = builder.start();
-            p.waitFor();
-        } catch (IOException | InterruptedException e) {
+            Runtime rt = Runtime.getRuntime();
+            Process process = rt.exec(cmd);
+
+            BufferedReader stdInput = new BufferedReader(new
+                    InputStreamReader(process.getInputStream()));
+
+            BufferedReader stdError = new BufferedReader(new
+                    InputStreamReader(process.getErrorStream()));
+
+// read the output from the command
+            System.out.println("Here is the standard output of the command:\n");
+            String s = null;
+            while ((s = stdInput.readLine()) != null) {
+                System.out.println(s);
+            }
+
+// read any errors from the attempted command
+            System.out.println("Here is the standard error of the command (if any):\n");
+            while ((s = stdError.readLine()) != null) {
+                System.out.println(s);
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public Set<Product> getProducts() {
+    public Set<String> getProducts() {
         return products;
     }
 
@@ -247,7 +207,7 @@ public class Handler {
         return userToProductMap;
     }
 
-    public Map<Double, Set<String>> getProductToUserMap() {
+    public Map<String, Set<String>> getProductToUserMap() {
         return productToUserMap;
     }
 

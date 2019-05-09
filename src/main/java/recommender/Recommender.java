@@ -3,6 +3,7 @@ package recommender;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.json.JSONObject;
+import util.FileProcessor;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -27,6 +28,8 @@ public class Recommender {
     // For a particular user which products to be recommended
     private Map<String, Product> recommendedProducts = new HashMap<String, Product>();
 
+    public Recommender() { }
+
     /**
      * Constructor for the Recommender where the Handler instance is set.
      * @param handlerIn
@@ -39,21 +42,19 @@ public class Recommender {
     /**
      * Parent method of the recommendation system
      */
-    public void start(String[] args, boolean sentimentAnalysis) {
+    public void start(boolean sentimentAnalysis) {
 
-        if (handler != null) {
-            // IP and port for consumer on 2nd and 3rd argument.
-            if (sentimentAnalysis) informConsumer(args[2], Integer.parseInt(args[3]), sentimentAnalysis);
-        }
+        informConsumer(sentimentAnalysis);
     }
 
-    public void informConsumer(String ip, int port, boolean isSentimentNeeded) {
+    public void informConsumer(boolean isSentimentNeeded) {
         // Create a client to communicate to the consumer and tell that sentiment analysis is required!
         Socket clientSocket = null;
         int confirmSentimentAnalysis = 0;
         try {
             // This connects to the consumer server, tells it if we need to perform sentiment analysis.
-            clientSocket = connect(ip, port);
+            String[] consumerServerDetails = FileProcessor.getServerDetails("java");
+            clientSocket = connect(consumerServerDetails[0], Integer.parseInt(consumerServerDetails[1]));
             if (clientSocket != null) {
                 OutputStreamWriter osw = new OutputStreamWriter(clientSocket.getOutputStream());
                 BufferedWriter bw = new BufferedWriter(osw);
@@ -76,43 +77,48 @@ public class Recommender {
 
     public void recommend(ConsumerRecords<Long, Product> records, String[] pythonServerDetails, boolean isSentimentNeeded) {
 
+        // Store new handler object into this recommender instance.
+        handler = new Handler();
+        // Store in-memory and update sentiment later on if required
+        handler.populateInMemory(records);
+        // Response from python program
+        String response = "";
         if(isSentimentNeeded) {
-            performSentimentAnalysis(records, pythonServerDetails);
+            response = performSentimentAnalysis(records, pythonServerDetails);
+            handler.updateSentiments(response);
         } else {
 
         }
+        // Update sentiments of in-memory products
+
     }
 
-    public void performSentimentAnalysis(ConsumerRecords<Long, Product> records, String[] pythonServerDetails) {
+    public String performSentimentAnalysis(ConsumerRecords<Long, Product> records, String[] pythonServerDetails) {
 
         String ip = pythonServerDetails[0];
         int port = Integer.parseInt(pythonServerDetails[1]);
         Socket socket = null;
-
+        String response = "";
         try {
             socket = new Socket(ip, port);
             PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
             //DataInputStream ds = new DataInputStream(socket.getInputStream());
-            BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
 
             for (ConsumerRecord<Long, Product> record: records) {
                 // Create JSON object and send it to python code
-
-                System.out.println(record.value());
                 Product product = new Product();
-                JSONObject jsonObject = product.parseString(record.value());
+                JSONObject jsonObject = product.getJSONObjectForProduct(record.value());
                 sb.append(jsonObject);
                 sb.append("||");
-                // Converting the json object to the product class object
-
             }
-            
-            printWriter.println(sb.toString());
+            System.out.println("Contacting sentiment analysis module...");
+            printWriter.write(sb.toString());
+            //printWriter.println(sb.toString());
             printWriter.flush();
-
-            String response = br.readLine();
-            System.out.println(response);
+            response = br.readLine();
+            System.out.println("Sentiment analysis completed, sending results to the product recommender.");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -124,6 +130,7 @@ public class Recommender {
                 }
             }
         }
+        return response;
     }
 
     /**
@@ -132,7 +139,7 @@ public class Recommender {
      */
     public void filterCollaboratively() {
 
-        Iterator iterator = handler.getInput( ).entrySet().iterator();
+        Iterator iterator = handler.getInput().entrySet().iterator();
 
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry) iterator.next();
@@ -174,7 +181,7 @@ public class Recommender {
     }
 
     /**
-     * A helper method used to get relevant set of products for some products.
+     * A helper method used to get relevant set of products for some users.
      * @param userSetIn
      * @return prds
      */

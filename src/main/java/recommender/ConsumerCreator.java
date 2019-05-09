@@ -39,8 +39,14 @@ public class ConsumerCreator {
         Socket socket = null;
         String messageFromClient = "";
         try {
-            ServerSocket serverSocket = new ServerSocket(9095);
+            String[] details = FileProcessor.getServerDetails("java");
+            ServerSocket serverSocket = new ServerSocket(Integer.parseInt(details[1]));
+            System.out.println(" -------------------- ");
+            System.out.println("Consumer initialized.");
+            System.out.println("Waiting for the producer..");
+            System.out.println();
             socket = serverSocket.accept();
+            System.out.println("Starting up on " + socket.getInetAddress() + " port " + socket.getPort());
             BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
@@ -50,13 +56,16 @@ public class ConsumerCreator {
             }
             int msg = messageFromClient.equals("") ? 0: Integer.parseInt(messageFromClient);
             if (msg == 1) {
-                // Use sentiment analysis
+                System.out.println();
                 System.out.println("");
+                // Use sentiment analysis
+                System.out.println("Sentiment Analysis in progress.");
                 isSentimentNeeded = true;
-                bw.write("Checking sentiments for product recommendations." + "\n");
+                bw.write("Checking sentiments for product recommendations..." + "\n");
             } else {
                 // Do not use sentiment analysis
                 System.out.println();
+                System.out.println("Sentiment Analysis skipped!");
                 bw.write("Recommending products without sentiment analysis." + "\n");
             }
             bw.flush();
@@ -84,8 +93,10 @@ public class ConsumerCreator {
             }
         } while (timeouts != 10000);
         if (records.count() > 0) {
-            Recommender recommender = new Recommender(new Handler());
-            String[] pythonServerDetails = getServerDetails();
+            System.out.println();
+            System.out.println("Consuming records..");
+            Recommender recommender = new Recommender();
+            String[] pythonServerDetails = FileProcessor.getServerDetails("python");
             recommender.recommend(records, pythonServerDetails, isSentimentNeeded);
         }
     }
@@ -103,31 +114,11 @@ public class ConsumerCreator {
             if (properties.getProperty("group.id") == null) {
                 properties.setProperty("group.id", "group-" + new Random().nextInt(100000));
             }
-            /*properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-            properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);*/
         } catch (IOException e) {
             e.printStackTrace();
         }
         consumer = new KafkaConsumer<>(properties, new StringDeserializer(), new KafkaJSONDeserializer<Product>(Product.class));
 
         return consumer;
-    }
-
-    /**
-     * Returns python server details from a text file.
-     * @return String[]
-     */
-    private static String[] getServerDetails() {
-
-        String connectionsFilePath = System.getProperty("user.dir") + "/connections.txt";
-        FileProcessor connProcessor = new FileProcessor(connectionsFilePath);
-        String[] details = new String[2];
-        while(connProcessor.hasNextLine()) {
-            details = connProcessor.getNextLine().split(",");
-            if (details.length != 0) {
-                break;
-            }
-        }
-        return details;
     }
 }
