@@ -1,13 +1,20 @@
 package recommender;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Customer {
 
     private String reviewerID = "";
     private String reviewerName = "";
-    private String asin = "";
-    private int sentiment = 0;
+    private List<Product> products = new ArrayList<Product>();
 
-    public Customer() { }
+    public Customer(String id, String name, List<Product> prods) {
+
+        reviewerID = id;
+        reviewerName = name;
+        products = prods;
+    }
 
     public String getReviewerID() {
         return reviewerID;
@@ -25,19 +32,11 @@ public class Customer {
         this.reviewerName = reviewerName;
     }
 
-    public String getAsin() {
-        return asin;
+    public List<Product> getProducts() {
+        return products;
     }
 
-    public void setAsin(String asin) {
-        this.asin = asin;
-    }
-
-    public int getSentiment() {
-        return sentiment;
-    }
-
-    public void setSentiment(int sentiment) {
-        this.sentiment = sentiment;
+    public void setProducts(List<Product> products) {
+        this.products = products;
     }
 }

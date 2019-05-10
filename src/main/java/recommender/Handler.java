@@ -25,23 +25,24 @@ public class Handler {
 
     // Holds the input data read from input.json
     private Map<String, List<String>> input = new HashMap<String, List<String>>();
-    // All products
-    private Set<String> products = new HashSet<String>();
-    // All users by their review IDs
-    private Set<String> users = new HashSet<String>();
+    // All productSet
+    private Set<String> productSet = new HashSet<String>();
+    // All users by their review IDs (name, ID)
+    private Map<String, String> users = new HashMap<String, String>();
 
-    // To fetch a single product by its "asin" and all its attributes.
-    private Map<String, Product> productsMap = new HashMap<String, Product>();
+    // All reviews
+    private Set<Review> reviewSet = new HashSet<Review>();
 
     // To fetch list of products for a particular user
     // Map --> <User, Products>
     private Map<String, Set<String>> userToProductMap = new HashMap<String, Set<String>>();
 
     // To fetch list of users (reviewerIDs) for a particular product
-    // Map --> <Product, Users>
+    // Map --> <Review, Users>
     private Map<String, Set<String>> productToUserMap = new HashMap<String, Set<String>>();
 
-    private List<Customer> customers = new ArrayList<Customer>();
+    private Map<String, Customer> customers = new HashMap<>();
+    private Map<String, Product> products = new HashMap<>();
 
     public Handler() { }
 
@@ -50,40 +51,61 @@ public class Handler {
      *
      * @param records
      */
-    public void populateInMemory(ConsumerRecords<Long, Product> records) {
+    public void populateInMemory(ConsumerRecords<Long, Review> records) {
 
-        for (ConsumerRecord<Long, Product> record : records) {
+        for (ConsumerRecord<Long, Review> record : records) {
             parseProductData(record.value());
         }
     }
 
     /**
-     * Add the products that were consumed.
+     * Add the productSet that were consumed.
      *
-     * @param product
+     * @param review
      */
-    public void parseProductData(Product product) {
+    public void parseProductData(Review review) {
 
-        products.add(product.getAsin());
-        users.add(product.getReviewerID());
-        // Update customer data
-
-
-    }
-
-    public void updateSentiments(String response) {
-
-        JSONArray jsonArray = new JSONArray(response);
-
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject jsonObject = jsonArray.getJSONObject(i);
-            System.out.println(jsonObject);
-            // Update sentiment of the product by user level
-        }
+        productSet.add(review.getAsin());
+        users.put(review.getReviewerName(), review.getReviewerID());
+        // Update customer and product data by reading the reviews
+        updateCustomers(review);
+        updateProducts(review);
     }
 
     /**
-     * Parses the input.json file for a reviewer and the products he bought.
+     *  Creates a customer object and updates it
+     * @param review
+     */
+    public void updateCustomers(Review review) {
+
+        String id = review.getReviewerID();
+        String name = review.getReviewerName();
+        String asin = review.getAsin();
+        Product product = new Product(asin);
+        // Do we have records for this customer?
+        Customer oldCustomer = customers.get(id);
+        // if yes, fetch his products and add our new product to the list
+        List<Product> newList = oldCustomer == null ? new ArrayList<>() : oldCustomer.getProducts();
+        newList.add(product);
+        // Now construct our new customer
+        Customer customer = new Customer(id, name, newList);
+        // Check if our customers list already has this one, if not.. add him/her.
+        if (!customers.containsKey(id)) customers.put(id, customer);
+    }
+
+    /**
+     * Creates a product object and updates it
+     * @param review
+     */
+    public void updateProducts(Review review) {
+
+        String asin = review.getAsin();
+        Product product = new Product(asin);
+        products.put(asin, product);
+    }
+
+    /**
+     * Parses the input.json file for a reviewer and the productSet he bought.
      */
     public void parseInputData() {
 
@@ -105,34 +127,64 @@ public class Handler {
     /**
      * Fills required data into different sets and maps
      *
-     * @param jsonObject
-     * @param product
+     * @param response
      */
-    public void mapDetails(JSONObject jsonObject, Product product) {
+    public void mapDetails(String response) {
 
-        // User to products mapping
-        Set<String> userProducts = userToProductMap.get(jsonObject.getString("reviewerID"));
-        if (userProducts == null) userProducts = new HashSet<String>();
-        if (!userProducts.isEmpty()) {
-            //TODO If there are products assigned to this user, check if current product already exists
+        JSONArray jsonArray = new JSONArray(response);
 
-        }
-        userProducts.add(jsonObject.getString("asin"));
+        // {"summary":"Best Price"
+        // ,"sentiment":1
+        // ,"reviewerName":"A"
+        // ,"reviewerID":"APYOBQE6M18AA"
+        // ,"overall":5
+        // ,"asin":"'1'"
+        // ,"unixReviewTime":1.3821408E9
+        // ,"helpful":[0,0]
+        // ,"reviewText":"My daughter ... with it."
+        // ,"reviewTime":"'10 19, 2013'"}
 
-        if (jsonObject.has("reviewerID")) {
-            // Map reviewer ID to all the products he reviewed.
-            userToProductMap.put(jsonObject.getString("reviewerID"), userProducts);
+        for(int i = 0; i < jsonArray.length(); i++) {
+            // User to products mapping
+            JSONObject j = (JSONObject) jsonArray.get(i);
+            // Populate reviewSet, which will be used later on for checking sentiments while recommending
+            Review review = new Review(j.toString());
+            reviewSet.add(review);
+            Set<String> userProducts = userToProductMap.get(j.getString("reviewerID"));
+            if (userProducts == null) userProducts = new HashSet<String>();
+            if (!userProducts.isEmpty()) {
+                //TODO If there are productSet assigned to this user, check if current review already exists
+
+            }
+            userProducts.add(j.getString("asin"));
+
+            if (j.has("reviewerID")) {
+                // Map reviewer ID to all the productSet he reviewed.
+                userToProductMap.put(j.getString("reviewerID"), userProducts);
+            }
+
+
         }
 
         // Product to users mapping
-        Set<String> productUsers = productToUserMap.get(jsonObject.getString("asin"));
-        if (productUsers == null) productUsers = new HashSet<String>();
-        if (!productUsers.isEmpty()) {
-            //TODO Do something
+        // productSet contains the names of existing products only.
+        for (String product: productSet) {
+            // user to products map contains info about which user bought what products
+            for (Map.Entry entry: userToProductMap.entrySet()) {
+                // We fetch those products for each user and check if our product matches with this entry
+                Set prods = (Set) entry.getValue();
+                // if it matches, which means we got a user for our product, add the user to our productToUserMap map
+                if (prods.contains(product)) {
+                    // Store key i.e the user for this product
+                    Set<String> productUsers =
+                            productToUserMap.get(product) == null ?
+                                    new HashSet<>() : productToUserMap.get(product);
+                    // Below, the entry.getKey() gives us the user from userToProductMap
+                    productUsers.add((String) entry.getKey());
+                    productToUserMap.put(product, productUsers);
+                }
+            }
         }
-
-        productUsers.add(jsonObject.getString("reviewerID"));
-        productToUserMap.put(product.getAsin(), productUsers);
     }
 
     /**
@@ -144,7 +196,7 @@ public class Handler {
         // Start zookeeper service and the kafka server before this.
         // startServices(kafkaPath);
         // Create the producer
-        final Producer<String, Product> producer = ProducerCreator.createProducer();
+        final Producer<String, Review> producer = ProducerCreator.createProducer();
         ProducerHandler producerHandler = new ProducerHandler(dirPath, producer, Constants.TOPIC_NAME);
         Thread producerThread = new Thread(producerHandler);
         System.out.println("DEBUG: Starting producer thread!");
@@ -183,11 +235,11 @@ public class Handler {
         }
     }
 
-    public Set<String> getProducts() {
-        return products;
+    public Set<String> getProductSet() {
+        return productSet;
     }
 
-    public Set<String> getUsers() {
+    public Map<String, String> getUsers() {
         return users;
     }
 
@@ -199,8 +251,8 @@ public class Handler {
         this.fileProcessor = fileProcessor;
     }
 
-    public Map<String, Product> getProductsMap() {
-        return productsMap;
+    public Set<Review> getReviewSet() {
+        return reviewSet;
     }
 
     public Map<String, Set<String>> getUserToProductMap() {
@@ -220,9 +272,9 @@ public class Handler {
         return "Handler{" +
                 "fileProcessor=" + fileProcessor +
                 ", input=" + input +
-                ", products=" + products +
+                ", productSet=" + productSet +
                 ", users=" + users +
-                ", productsMap=" + productsMap +
+                ", reviewSet=" + reviewSet +
                 ", userToProductMap=" + userToProductMap +
                 ", productToUserMap=" + productToUserMap +
                 '}';

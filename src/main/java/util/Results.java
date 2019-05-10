@@ -1,5 +1,7 @@
 package util;
 
+import java.util.Map;
+
 public class Results implements FileDisplayInterface, StdoutDisplayInterface {
 
     private StringBuilder sb = new StringBuilder();
@@ -18,10 +20,15 @@ public class Results implements FileDisplayInterface, StdoutDisplayInterface {
     }
 
     @Override
-    public String display(boolean graduated) {
+    public String display(Map<String, String> input) {
 
-        result = buildOutput(graduated);
-        System.out.println("Output: " + result);
+        result = buildOutput(input).trim();
+        System.out.println(System.lineSeparator());
+        if (result.equals("")) {
+            result = "Oops! Looks like we don't have enough data to recommend!\nFeed me some product-review data please!" ;
+        } else {
+            System.out.println(" --- Recommendations --- ");
+        }
         return result;
     }
 
@@ -29,18 +36,16 @@ public class Results implements FileDisplayInterface, StdoutDisplayInterface {
     /**
      * String builder is used to append output.
      * Used to display in the console.
+     * @param input
      */
-    private String buildOutput(boolean graduated) {
+    private String buildOutput(Map<String, String> input) {
 
-        String output = "";
+        String output;
+        for (Map.Entry e: input.entrySet()) {
+            sb.append("For customer: ").append(e.getKey())
+                    .append(" item ").append(e.getValue()).append(" is recommended!");
+        }
+        output = sb.toString();
         return output;
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    public void setResult(String resultIn) {
-        result = result;
     }
 }

@@ -13,9 +13,9 @@ public class ProducerCreator {
 
     public ProducerCreator() { }
 
-    public static Producer<String, Product> createProducer() {
+    public static Producer<String, Review> createProducer() {
 
-        Producer<String, Product> producer = null;
+        Producer<String, Review> producer = null;
         try (InputStream props = Resources.getResource("producer.props").openStream()) {
             Properties properties = new Properties();
             properties.load(props);

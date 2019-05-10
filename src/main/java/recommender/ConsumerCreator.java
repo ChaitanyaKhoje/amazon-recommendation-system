@@ -30,18 +30,17 @@ public class ConsumerCreator {
         boolean isSentimentNeeded = false;
         // Consumer declarations
         int timeouts = 0;
-        //Consumer<String, Product> consumer = createConsumer();
-        Consumer<Long, Product> consumer = createConsumer();
+        //Consumer<String, Review> consumer = createConsumer();
+        Consumer<Long, Review> consumer = createConsumer();
         consumer.subscribe(Collections.singletonList("amazondata"));
         Duration duration = Duration.ofSeconds(3);
-        ConsumerRecords<Long, Product> records;
+        ConsumerRecords<Long, Review> records;
 
         Socket socket = null;
         String messageFromClient = "";
         try {
             String[] details = FileProcessor.getServerDetails("java");
             ServerSocket serverSocket = new ServerSocket(Integer.parseInt(details[1]));
-            System.out.println(" -------------------- ");
             System.out.println("Consumer initialized.");
             System.out.println("Waiting for the producer..");
             System.out.println();
@@ -105,9 +104,9 @@ public class ConsumerCreator {
      * Creates and returns a new consumer object
      * @return Consumer<String, String>
      */
-    private static Consumer<Long, Product> createConsumer() {
+    private static Consumer<Long, Review> createConsumer() {
 
-        KafkaConsumer<Long, Product> consumer = null;
+        KafkaConsumer<Long, Review> consumer = null;
         Properties properties = new Properties();
         try (InputStream props = Resources.getResource("consumer.props").openStream()) {
             properties.load(props);
@@ -117,7 +116,7 @@ public class ConsumerCreator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        consumer = new KafkaConsumer<>(properties, new StringDeserializer(), new KafkaJSONDeserializer<Product>(Product.class));
+        consumer = new KafkaConsumer<>(properties, new StringDeserializer(), new KafkaJSONDeserializer<Review>(Review.class));
 
         return consumer;
     }

@@ -10,11 +10,11 @@ import java.util.concurrent.ExecutionException;
 
 public class ProducerHandler implements Runnable {
 
-    private final Producer<String, Product> producer;
+    private final Producer<String, Review> producer;
     private String dataPath;
     private String topic;
 
-    public ProducerHandler(String dataDirectoryPath, Producer<String, Product> producerIn, String topicIn) {
+    public ProducerHandler(String dataDirectoryPath, Producer<String, Review> producerIn, String topicIn) {
 
         dataPath = dataDirectoryPath;
         producer = producerIn;
@@ -57,10 +57,10 @@ public class ProducerHandler implements Runnable {
                                 }
                             }
                             String line = fp.getNextLine();
-                            Product product = new Product(line);
+                            Review review = new Review(line);
                             RecordMetadata m;
                             try {
-                                m = producer.send(new ProducerRecord<String, Product>(getTopic(), product)).get();
+                                m = producer.send(new ProducerRecord<String, Review>(getTopic(), review)).get();
                                 System.out.println(m.toString());
                                 System.out.println("Message produced, offset: " + m.offset());
                                 System.out.println("Message produced, partition : " + m.partition());

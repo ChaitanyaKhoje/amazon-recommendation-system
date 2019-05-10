@@ -1,6 +1,8 @@
 package util;
 
+import java.util.Map;
+
 public interface StdoutDisplayInterface {
 
-    String display(boolean graduationStatusIn);
+    String display(Map<String, String> input);
 }

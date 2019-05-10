@@ -13,6 +13,9 @@ fragments = []
 def analyze():
     print("Performing sentiment analysis..")
     for obj in all_objects:
+        # Trim some fields
+        obj['reviewTime'] = obj['reviewTime'].replace("'", "")
+        obj['asin'] = obj['asin'].replace("'", "")
         # Add sentiment column to the record
         obj['sentiment'] = 0
         sentence = obj['reviewText']

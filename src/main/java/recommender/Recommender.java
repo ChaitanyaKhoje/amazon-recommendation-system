@@ -4,6 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.json.JSONObject;
 import util.FileProcessor;
+import util.Results;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -26,7 +27,7 @@ public class Recommender {
     private Handler handler = null;
 
     // For a particular user which products to be recommended
-    private Map<String, Product> recommendedProducts = new HashMap<String, Product>();
+    private Map<String, String> recommendedProducts = new HashMap<String, String>();
 
     public Recommender() { }
 
@@ -75,7 +76,7 @@ public class Recommender {
         }
     }
 
-    public void recommend(ConsumerRecords<Long, Product> records, String[] pythonServerDetails, boolean isSentimentNeeded) {
+    public void recommend(ConsumerRecords<Long, Review> records, String[] pythonServerDetails, boolean isSentimentNeeded) {
 
         // Store new handler object into this recommender instance.
         handler = new Handler();
@@ -83,17 +84,19 @@ public class Recommender {
         handler.populateInMemory(records);
         // Response from python program
         String response = "";
+        handler.parseInputData();
         if(isSentimentNeeded) {
             response = performSentimentAnalysis(records, pythonServerDetails);
-            handler.updateSentiments(response);
+            handler.mapDetails(response);
+            filterCollaboratively(response);
         } else {
 
         }
-        // Update sentiments of in-memory products
-
+        Results results = new Results();
+        System.out.println(results.display(recommendedProducts));
     }
 
-    public String performSentimentAnalysis(ConsumerRecords<Long, Product> records, String[] pythonServerDetails) {
+    public String performSentimentAnalysis(ConsumerRecords<Long, Review> records, String[] pythonServerDetails) {
 
         String ip = pythonServerDetails[0];
         int port = Integer.parseInt(pythonServerDetails[1]);
@@ -106,10 +109,10 @@ public class Recommender {
             BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
 
-            for (ConsumerRecord<Long, Product> record: records) {
+            for (ConsumerRecord<Long, Review> record: records) {
                 // Create JSON object and send it to python code
-                Product product = new Product();
-                JSONObject jsonObject = product.getJSONObjectForProduct(record.value());
+                Review review = new Review();
+                JSONObject jsonObject = review.getJSONObjectForProduct(record.value());
                 sb.append(jsonObject);
                 sb.append("||");
             }
@@ -137,7 +140,7 @@ public class Recommender {
      * Collaborative filtering to get recommended products for the input user depending on
      * what his purchased products were.
      */
-    public void filterCollaboratively() {
+    public void filterCollaboratively(String response) {
 
         Iterator iterator = handler.getInput().entrySet().iterator();
 
@@ -145,6 +148,8 @@ public class Recommender {
             Map.Entry pair = (Map.Entry) iterator.next();
             // This is the user who has bought something (the input user)
             String mainUser = (String) pair.getKey();
+            // Get the id instead of user's name
+            if (!handler.getUsers().isEmpty()) mainUser = handler.getUsers().get(mainUser);
             // This is the list of products the above user has bought (the input products (products bought))
             List<String> mainProductsBought = (ArrayList<String>) pair.getValue();
             // This is the list of users who have purchased the products in the above list (mainProductsBought)
@@ -152,13 +157,65 @@ public class Recommender {
             // Remove self (mainUser) from userList
             userList.remove(mainUser);
             Set<String> productSet = getListOfRelevantProducts(userList, mainUser);
-            System.out.println(productSet);
+
+            // Remove bought products from recos
+            for (String prod: mainProductsBought) {
+                productSet.remove(prod);
+            }
+
+            if (productSet.isEmpty()) {
+                //  If collaborative filtering yields nothing, check for existing products,
+                // i.e check what our new customer has bought in the past and match with other users
+                productSet = getPastPurchase(mainUser);
+            }
+            int sentiment = 0; // zero is neutral
+            Map<Integer, Integer> sentiments = new HashMap<Integer, Integer>();
             for (String pr: productSet) {
-                Product product = handler.getProductsMap().get(pr);
+                Set<String> reviews;
+                if (!handler.getReviewSet().isEmpty()) {
+                    for (Review review: handler.getReviewSet()) {
+                        if (review.getAsin().equals(pr)) {
+                            // Check sentiments user by user
+                            sentiments.put(review.getSentiment(),
+                                    sentiments.getOrDefault(review.getSentiment(), 0) + 1);
+                        }
+                    }
+                }
+                // get maximum of 1's or 0's and select the sentiment accordingly
+                Map.Entry<Integer, Integer> maxEntry = null;
+                for (Map.Entry<Integer, Integer> entry : sentiments.entrySet()) {
+                    if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0) {
+                        maxEntry = entry;
+                    }
+                }
+                sentiment = maxEntry.getKey();
                 // Check sentiment before adding it to recommendations
-                if (product.getSentiment() > 0) recommendedProducts.put(mainUser, product);
+                if (sentiment >= 0) recommendedProducts.put(mainUser, pr);
             }
         }
+    }
+
+    /**
+     * Get past purchases for a customer
+     * @param mainUser
+     * @return
+     */
+    public Set<String> getPastPurchase(String mainUser) {
+
+        Set<String> productSet = new HashSet<>();
+
+        if(!handler.getUserToProductMap().isEmpty()) {
+            // We have our user to products mapping, now check our current customer's past products
+            Set<String> pastProducts = handler.getUserToProductMap().get(mainUser);
+            // List of users who bought above products
+            Set<String> userList = getListOfRelevantUsers(new ArrayList<>(pastProducts));
+            userList.remove(mainUser);  // Remove current customer from this list (happens when there are commons products between 2 or more users)
+            productSet = getListOfRelevantProducts(userList, mainUser);
+        } else {
+            System.out.println("Looks like we don't have any purchases yet!");
+        }
+
+        return productSet;
     }
 
     /**
@@ -193,8 +250,13 @@ public class Recommender {
             for (String user: userSetIn) {
                 Set<String> productSet = new HashSet<String>(handler.getUserToProductMap().get(user));
                 // Remove already bought products
-                for (String element: handler.getUserToProductMap().get(mainUserIn)) {
-                    productSet.remove(element);
+                Set<String> elements
+                        = handler.getUserToProductMap().get(mainUserIn) == null ?
+                        new HashSet<>() : handler.getUserToProductMap().get(mainUserIn);
+                if (!elements.isEmpty()) {
+                    for (String element : elements) {
+                        productSet.remove(element);
+                    }
                 }
                 prds.addAll(productSet);
                 productSet.clear();
