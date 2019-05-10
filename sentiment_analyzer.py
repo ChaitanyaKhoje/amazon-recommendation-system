@@ -84,6 +84,10 @@ def perform_operations():
         # res = ','.join(str(v) for v in all_objects)
         # conn.sendall(res.encode('UTF-8'))
         conn.sendall(json.dumps(all_objects).encode("UTF-8"))
+        result = ''
+        messages.clear()
+        fragments.clear()
+        all_objects.clear()
         conn.close()
         print("Done.")
 
